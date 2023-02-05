@@ -1,6 +1,8 @@
 # PlayWidgetAnimation
 This removes "Start at Time" from Play Animation with Finished event, and computes it automatically for the purpose of reversing an animation part way through
 
+If you don't need a finish event or the duo node, you can just use the engine's `UUserWidget::PlayAnimationForward` and `UUserWidget::PlayAnimationReverse` nodes.
+
 ## Example Usage
 
 ![example usage](https://github.com/Vaei/PlayWidgetAnimation/blob/examples/Example1.png)
