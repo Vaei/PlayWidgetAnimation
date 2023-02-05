@@ -10,3 +10,9 @@ class PLAYWIDGETANIMATIONEDITOR_API UK2Node_PlayAnimationV2 : public UK2Node_Bas
 {
 	GENERATED_UCLASS_BODY()
 };
+
+UCLASS()
+class PLAYWIDGETANIMATIONEDITOR_API UK2Node_PlayAnimationV2Duo : public UK2Node_BaseAsyncTask
+{
+	GENERATED_UCLASS_BODY()
+};
