@@ -82,6 +82,8 @@ UUMGSequencePlayer* UWidgetAnimationPlayCallbackProxyV2::ExecutePlayDuoAnimation
 
 		StartAtTime = PlayMode == EUMGSequencePlayModeV2::Reverse ?
 		AnimToCheck->GetEndTime() - CurrentTime : CurrentTime;
+
+		Widget->StopAnimation(AnimToCheck);
 	}
 
 	// Always play forward, because the animations aren't actually being reversed

@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0",
+	"VersionName": "1.0.0.2",
 	"FriendlyName": "PlayWidgetAnimation",
 	"Description": "Play Animation with Finished Event V2 Node that can reverse a currently playing animation in place",
 	"Category": "Animation",
