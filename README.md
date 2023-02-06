@@ -19,3 +19,13 @@ This node can play different animations that have the same play lengths - you mu
 This is how it used to look using only engine functionality, although this is an incomplete example, you also have to factor in if it's currently playing or not as well so it only gets messier
 
 ![engine equivalent](https://github.com/Vaei/PlayWidgetAnimation/blob/examples/Example0.png)
+
+## Changelog
+### 1.0.0.2
+Fixed bug with duo node not stopping previous anim
+
+### 1.0.0.1
+Added duo node
+
+### 1.0.0.0
+Initial Release
