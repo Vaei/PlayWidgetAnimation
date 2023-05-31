@@ -7,7 +7,7 @@ public class PlayWidgetAnimationEditor : ModuleRules
 	public PlayWidgetAnimationEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		bEnforceIWYU = true;
+		IWYUSupport = IWYUSupport.Full;
 		// bUseUnity = false;
 		
 		PublicDependencyModuleNames.AddRange(
