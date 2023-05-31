@@ -5,7 +5,7 @@
 #include "Blueprint/UserWidget.h"
 #include "WidgetAnimationPlayCallbackProxyV2.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWidgetAnimationResult);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWidgetAnimationV2Result);
 
 /** Describes playback modes for UMG sequences. */
 UENUM(BlueprintType)
@@ -27,7 +27,7 @@ class UWidgetAnimationPlayCallbackProxyV2 : public UObject
 
 	// Called when animation has been completed
 	UPROPERTY(BlueprintAssignable)
-	FWidgetAnimationResult Finished;
+	FWidgetAnimationV2Result Finished;
 
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", DisplayName = "Play Animation with Finished event V2", ShortToolTip = "Play Animation and trigger event on Finished, reversing in place if playing",  ToolTip="Play Animation on widget, reversing in place if animation is playing, and trigger Finish event when the animation is done."), Category = "User Interface|Animation")
 	static UWidgetAnimationPlayCallbackProxyV2* CreatePlayAnimationProxyObject(class UUMGSequencePlayer*& Result, class UUserWidget* Widget, class UWidgetAnimation* InAnimation, EUMGSequencePlayModeV2::Type PlayMode = EUMGSequencePlayModeV2::Forward, float PlaybackSpeed = 1.0f);
