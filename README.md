@@ -21,6 +21,9 @@ This is how it used to look using only engine functionality, although this is an
 ![engine equivalent](https://github.com/Vaei/PlayWidgetAnimation/blob/examples/Example0.png)
 
 ## Changelog
+### 1.0.0.3
+Fixed loading phase
+
 ### 1.0.0.2
 Fixed bug with duo node not stopping previous anim
 
