@@ -18,12 +18,12 @@
 		{
 			"Name": "PlayWidgetAnimation",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PreDefault"
 		},
 		{
 			"Name": "PlayWidgetAnimationEditor",
 			"Type": "UncookedOnly",
-			"LoadingPhase": "PostEngineInit"
+			"LoadingPhase": "PreDefault"
 		}
 	]
 }
