@@ -10,21 +10,23 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-UWidgetAnimationPlayCallbackProxyV2* UWidgetAnimationPlayCallbackProxyV2::CreatePlayAnimationProxyObject(class UUMGSequencePlayer*& Result, class UUserWidget* Widget, UWidgetAnimation* InAnimation, EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
+UWidgetAnimationPlayCallbackProxyV2* UWidgetAnimationPlayCallbackProxyV2::CreatePlayAnimationProxyObject(FWidgetAnimationHandle& Result, class UUserWidget* Widget, UWidgetAnimation* InAnimation, EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
 {
 	UWidgetAnimationPlayCallbackProxyV2* Proxy = NewObject<UWidgetAnimationPlayCallbackProxyV2>();
 	Proxy->SetFlags(RF_StrongRefOnFrame);
-	Result = Proxy->ExecutePlayAnimation(Widget, InAnimation, PlayMode, PlaybackSpeed);
+	Proxy->ExecutePlayAnimation(Widget, InAnimation, PlayMode, PlaybackSpeed);
+	Result = Proxy->WidgetAnimationHandle;
 	return Proxy;
 }
 
 UWidgetAnimationPlayCallbackProxyV2* UWidgetAnimationPlayCallbackProxyV2::CreatePlayAnimationDuoProxyObject(
-	UUMGSequencePlayer*& Result, UUserWidget* Widget, UWidgetAnimation* InForwardAnimation,
+	FWidgetAnimationHandle& Result, UUserWidget* Widget, UWidgetAnimation* InForwardAnimation,
 	UWidgetAnimation* InReverseAnimation, EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
 {
 	UWidgetAnimationPlayCallbackProxyV2* Proxy = NewObject<UWidgetAnimationPlayCallbackProxyV2>();
 	Proxy->SetFlags(RF_StrongRefOnFrame);
-	Result = Proxy->ExecutePlayDuoAnimation(Widget, InForwardAnimation, InReverseAnimation, PlayMode, PlaybackSpeed);
+	Proxy->ExecutePlayDuoAnimation(Widget, InForwardAnimation, InReverseAnimation, PlayMode, PlaybackSpeed);
+	Result = Proxy->WidgetAnimationHandle;
 	return Proxy;
 }
 
@@ -33,11 +35,11 @@ UWidgetAnimationPlayCallbackProxyV2::UWidgetAnimationPlayCallbackProxyV2(const F
 {
 }
 
-class UUMGSequencePlayer* UWidgetAnimationPlayCallbackProxyV2::ExecutePlayAnimation(class UUserWidget* Widget, UWidgetAnimation* InAnimation, EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
+void UWidgetAnimationPlayCallbackProxyV2::ExecutePlayAnimation(class UUserWidget* Widget, UWidgetAnimation* InAnimation, EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
 {
 	if (!Widget || !InAnimation)
 	{
-		return nullptr;
+		return;
 	}
 
 	// This is the main change away from Epic's - will reverse the animation in place instead of from the end
@@ -51,22 +53,21 @@ class UUMGSequencePlayer* UWidgetAnimationPlayCallbackProxyV2::ExecutePlayAnimat
 		InAnimation->GetEndTime() - CurrentTime : CurrentTime;
 	}
 
-	UUMGSequencePlayer* Player = Widget->PlayAnimation(InAnimation, StartAtTime, 1, PlayMode == EUMGSequencePlayModeV2::Reverse ? EUMGSequencePlayMode::Reverse : EUMGSequencePlayMode::Forward, PlaybackSpeed);
-	if (Player)
+	WidgetAnimationHandle = Widget->PlayAnimation(InAnimation, StartAtTime, 1, PlayMode == EUMGSequencePlayModeV2::Reverse ? EUMGSequencePlayMode::Reverse : EUMGSequencePlayMode::Forward, PlaybackSpeed);
+	FWidgetAnimationState* State = WidgetAnimationHandle.GetAnimationState();
+	if (State)
 	{
-		Player->OnSequenceFinishedPlaying().AddUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished);
+		State->GetOnWidgetAnimationFinished().AddUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished);
 	}
-
-	return Player;
 }
 
-UUMGSequencePlayer* UWidgetAnimationPlayCallbackProxyV2::ExecutePlayDuoAnimation(UUserWidget* Widget,
+void UWidgetAnimationPlayCallbackProxyV2::ExecutePlayDuoAnimation(UUserWidget* Widget,
 	UWidgetAnimation* InForwardAnimation, UWidgetAnimation* InReverseAnimation, EUMGSequencePlayModeV2::Type PlayMode,
 	float PlaybackSpeed)
 {
 	if (!Widget || !InForwardAnimation || !InReverseAnimation)
 	{
-		return nullptr;
+		return;
 	}
 
 	const bool bForward = PlayMode != EUMGSequencePlayModeV2::Reverse;
@@ -87,18 +88,17 @@ UUMGSequencePlayer* UWidgetAnimationPlayCallbackProxyV2::ExecutePlayDuoAnimation
 	}
 
 	// Always play forward, because the animations aren't actually being reversed
-	UUMGSequencePlayer* Player = Widget->PlayAnimation(AnimToPlay, StartAtTime, 1, EUMGSequencePlayMode::Forward, PlaybackSpeed);
-	if (Player)
+	WidgetAnimationHandle = Widget->PlayAnimation(AnimToPlay, StartAtTime, 1, EUMGSequencePlayMode::Forward, PlaybackSpeed);
+	FWidgetAnimationState* State = WidgetAnimationHandle.GetAnimationState();
+	if (State)
 	{
-		Player->OnSequenceFinishedPlaying().AddUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished);
+		State->GetOnWidgetAnimationFinished().AddUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished);
 	}
-
-	return Player;
 }
 
-void UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished(class UUMGSequencePlayer& Player)
+void UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished(FWidgetAnimationState& State)
 {
-	Player.OnSequenceFinishedPlaying().Remove(OnFinishedHandle);
+	State.GetOnWidgetAnimationFinished().Remove(OnFinishedHandle);
 
 	// We delay the Finish broadcast to next frame.
 	FTSTicker::FDelegateHandle TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnAnimationFinished));
