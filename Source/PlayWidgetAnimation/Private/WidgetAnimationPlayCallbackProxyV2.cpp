@@ -19,6 +19,30 @@ UWidgetAnimationPlayCallbackProxyV2* UWidgetAnimationPlayCallbackProxyV2::Create
 	return Proxy;
 }
 
+UWidgetAnimationPlayCallbackProxyV2* UWidgetAnimationPlayCallbackProxyV2::CreatePlayAnimationProxyObjectDeferred()
+{
+	UWidgetAnimationPlayCallbackProxyV2* Proxy = NewObject<UWidgetAnimationPlayCallbackProxyV2>();
+	Proxy->SetFlags(RF_StrongRefOnFrame);
+	return Proxy;
+}
+
+void UWidgetAnimationPlayCallbackProxyV2::PlayAnimationProxyObjectDeferred(
+	UWidgetAnimationPlayCallbackProxyV2* Proxy, FWidgetAnimationHandle& Result, class UUserWidget* Widget,
+	class UWidgetAnimation* InAnimation, EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
+{
+	Proxy->ExecutePlayAnimation(Widget, InAnimation, PlayMode, PlaybackSpeed);
+	Result = Proxy->WidgetAnimationHandle;
+}
+
+void UWidgetAnimationPlayCallbackProxyV2::PlayAnimationDuoProxyObjectDeferred(
+	UWidgetAnimationPlayCallbackProxyV2* Proxy, FWidgetAnimationHandle& Result, class UUserWidget* Widget,
+	class UWidgetAnimation* InForwardAnimation, class UWidgetAnimation* InReverseAnimation,
+	EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
+{
+	Proxy->ExecutePlayDuoAnimation(Widget, InForwardAnimation, InReverseAnimation, PlayMode, PlaybackSpeed);
+	Result = Proxy->WidgetAnimationHandle;
+}
+
 UWidgetAnimationPlayCallbackProxyV2* UWidgetAnimationPlayCallbackProxyV2::CreatePlayAnimationDuoProxyObject(
 	FWidgetAnimationHandle& Result, UUserWidget* Widget, UWidgetAnimation* InForwardAnimation,
 	UWidgetAnimation* InReverseAnimation, EUMGSequencePlayModeV2::Type PlayMode, float PlaybackSpeed)
@@ -100,6 +124,8 @@ void UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished(FWidgetAnimationSta
 {
 	State.GetOnWidgetAnimationFinished().Remove(OnFinishedHandle);
 
+	bWasInterrupted = State.WasInterrupted();
+
 	// We delay the Finish broadcast to next frame.
 	FTSTicker::FDelegateHandle TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnAnimationFinished));
 }
@@ -107,7 +133,14 @@ void UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished(FWidgetAnimationSta
 
 bool UWidgetAnimationPlayCallbackProxyV2::OnAnimationFinished(float /*DeltaTime*/)
 {
-	Finished.Broadcast();
+	if (bWasInterrupted)
+	{
+		Interrupted.Broadcast();
+	}
+	else
+	{
+		Finished.Broadcast();
+	}
 
 	// Returning false, disable the ticker.
 	return false;

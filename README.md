@@ -22,6 +22,10 @@ This is how it used to look using only engine functionality, although this is an
 
 ## Changelog
 
+### 1.1.0
+* Added Interrupt callback alongside Finished events
+	* Calling StopAnimation now triggers Interrupted instead of Finished
+
 ### 1.0.4
 * Update for UE5.7
 
