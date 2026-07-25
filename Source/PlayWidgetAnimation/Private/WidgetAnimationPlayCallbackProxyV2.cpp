@@ -77,11 +77,13 @@ void UWidgetAnimationPlayCallbackProxyV2::ExecutePlayAnimation(class UUserWidget
 		InAnimation->GetEndTime() - CurrentTime : CurrentTime;
 	}
 
-	WidgetAnimationHandle = Widget->PlayAnimation(InAnimation, StartAtTime, 1, PlayMode == EUMGSequencePlayModeV2::Reverse ? EUMGSequencePlayMode::Reverse : EUMGSequencePlayMode::Forward, PlaybackSpeed);
+	const bool bForward = PlayMode != EUMGSequencePlayModeV2::Reverse;
+	WidgetAnimationHandle = Widget->PlayAnimation(InAnimation, StartAtTime, 1, bForward ? EUMGSequencePlayMode::Forward : EUMGSequencePlayMode::Reverse, PlaybackSpeed);
 	FWidgetAnimationState* State = WidgetAnimationHandle.GetAnimationState();
 	if (State)
 	{
 		State->GetOnWidgetAnimationFinished().AddUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished);
+		BeginProgressTracking(Widget, InAnimation, bForward);
 	}
 }
 
@@ -117,6 +119,7 @@ void UWidgetAnimationPlayCallbackProxyV2::ExecutePlayDuoAnimation(UUserWidget* W
 	if (State)
 	{
 		State->GetOnWidgetAnimationFinished().AddUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished);
+		BeginProgressTracking(Widget, AnimToPlay, true);
 	}
 }
 
@@ -124,7 +127,7 @@ void UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished(FWidgetAnimationSta
 {
 	State.GetOnWidgetAnimationFinished().Remove(OnFinishedHandle);
 
-	bWasInterrupted = State.WasInterrupted();
+	StopProgressTracking();
 
 	// We delay the Finish broadcast to next frame.
 	FTSTicker::FDelegateHandle TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UWidgetAnimationPlayCallbackProxyV2::OnAnimationFinished));
@@ -133,17 +136,63 @@ void UWidgetAnimationPlayCallbackProxyV2::OnSequenceFinished(FWidgetAnimationSta
 
 bool UWidgetAnimationPlayCallbackProxyV2::OnAnimationFinished(float /*DeltaTime*/)
 {
-	if (bWasInterrupted)
+	if (bReachedEnd)
 	{
-		Interrupted.Broadcast();
+		Finished.Broadcast();
 	}
 	else
 	{
-		Finished.Broadcast();
+		Interrupted.Broadcast();
 	}
 
 	// Returning false, disable the ticker.
 	return false;
+}
+
+void UWidgetAnimationPlayCallbackProxyV2::BeginProgressTracking(UUserWidget* Widget, UWidgetAnimation* Anim, bool bForward)
+{
+	if (!Widget || !Anim)
+	{
+		return;
+	}
+
+	TrackedWidget = Widget;
+	TrackedAnimation = Anim;
+	bTrackForward = bForward;
+	ProgressBoundaryTime = bForward ? Anim->GetEndTime() : 0.f;
+	LastSampleTime = Widget->GetAnimationCurrentTime(Anim);
+	bReachedEnd = FMath::IsNearlyEqual(LastSampleTime, ProgressBoundaryTime);
+
+	ProgressTickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UWidgetAnimationPlayCallbackProxyV2::SampleProgress));
+}
+
+bool UWidgetAnimationPlayCallbackProxyV2::SampleProgress(float /*DeltaTime*/)
+{
+	UUserWidget* Widget = TrackedWidget.Get();
+	UWidgetAnimation* Anim = TrackedAnimation.Get();
+	if (!Widget || !Anim || !Widget->IsAnimationPlaying(Anim))
+	{
+		return false;
+	}
+
+	const float CurrentTime = Widget->GetAnimationCurrentTime(Anim);
+	const float Step = FMath::Abs(CurrentTime - LastSampleTime);
+	const float Remaining = FMath::Abs(ProgressBoundaryTime - CurrentTime);
+	if (Remaining <= Step * 1.5f + UE_KINDA_SMALL_NUMBER)
+	{
+		bReachedEnd = true;
+	}
+	LastSampleTime = CurrentTime;
+	return true;
+}
+
+void UWidgetAnimationPlayCallbackProxyV2::StopProgressTracking()
+{
+	if (ProgressTickerHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(ProgressTickerHandle);
+		ProgressTickerHandle.Reset();
+	}
 }
 #undef LOCTEXT_NAMESPACE
 

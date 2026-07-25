@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Containers/Ticker.h"
 #include "WidgetAnimationPlayCallbackProxyV2.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWidgetAnimationV2Result);
@@ -49,7 +50,20 @@ private:
 	void OnSequenceFinished(FWidgetAnimationState& State);
 	bool OnAnimationFinished(float DeltaTime);
 
+	void BeginProgressTracking(class UUserWidget* Widget, class UWidgetAnimation* Anim, bool bForward);
+	bool SampleProgress(float DeltaTime);
+	void StopProgressTracking();
+
 	FWidgetAnimationHandle WidgetAnimationHandle;
 	FDelegateHandle OnFinishedHandle;
-	bool bWasInterrupted = false;
+
+	TWeakObjectPtr<class UUserWidget> TrackedWidget;
+	TWeakObjectPtr<class UWidgetAnimation> TrackedAnimation;
+	FTSTicker::FDelegateHandle ProgressTickerHandle;
+	float ProgressBoundaryTime = 0.f;
+	float LastSampleTime = 0.f;
+	bool bTrackForward = true;
+
+	// Whether the tracked animation reached its end boundary before finishing (natural completion vs external Stop)
+	bool bReachedEnd = false;
 };
